@@ -1,0 +1,82 @@
+units               real    
+dimension           3   
+newton              off 
+#processors         * * *
+boundary            p p f 
+atom_style          full  #mpirun -np 4 ./lmp_mpi -in ionicInput
+
+##force field         sudo ln -s /lib/x86_64-linux-gnu/libc.so.6 /lib64/libc.so.6
+pair_style          lj/cut/coul/long 12.0
+pair_modify mix arithmetic tail yes
+dihedral_style      opls                    #echo 0 > /proc/sys/kernel/yama/ptrace_scope
+special_bonds lj/coul 0.0 0.0 0.5
+bond_style          harmonic
+angle_style         harmonic
+kspace_style        pppm 1.0e-6
+kspace_modify       slab 3.0
+
+
+##atom definition
+read_restart        EQUI.2450000
+#read_data           data.lmp
+include             pair.lmp
+
+
+##setting
+neighbor            2 bin
+neigh_modify delay 0 every 1 check yes
+group ele type 15
+group sol type 1 2 3 4 5 6 7 8 9 10 11 12 13 14
+
+group elec2 molecule 702
+group elec1 molecule 701
+group C4C1im type 8
+group SCN type 13
+
+
+
+compute 2 elec2 property/atom q
+compute 4 elec2 reduce sum c_2
+variable chargeDensity equal c_4*0.00111111
+
+
+
+compute displacementSCN SCN displace/atom
+compute averageDisplacementSCN SCN reduce ave c_displacementSCN[3] 
+#variable perpendicularDisplacementSCN equal c_averageDisplacementSCN/150
+
+compute displacementC4C1im C4C1im displace/atom
+compute averageDisplacementC4C1im C4C1im reduce ave c_displacementC4C1im[3] 
+#variable perpendicularDisplacementC4C1im equal c_averageDisplacementC4C1im/150
+
+
+
+
+dump 1 elec2 custom 50000 elec2TEST q  
+dump_modify 1 flush yes
+dump 2 elec1 custom 50000 elec1TEST q  #ele
+dump_modify 2 flush yes
+dump 4 all custom 500 ionicTraj_nvt.lammpstrjTEST id mol type x y z q
+dump_modify 4 flush yes
+
+
+
+thermo_style        custom step v_chargeDensity c_averageDisplacementSCN c_averageDisplacementC4C1im temp
+thermo_modify flush yes
+#thermo_style         custom step temp  flush yes
+thermo              1000
+restart 25000 EQUI  #10000
+
+##run
+
+run_style           verlet
+timestep            1.0
+velocity ele set 0.0 0.0 0.0
+fix 0 ele setforce 0.0 0.0 0.0
+#fix 1 sol nvt temp 440.0 350.0 100.0  #298
+#run 2000000 upto start 0 stop 5000000
+#unfix 1
+fix 2 sol nvt temp 350.0 350.0 100.0  #298
+fix e1 all conp 1 1.979 701 702 -1.5 1.5 inv iter #0.5 1.979
+run 5000000 upto start 0 stop 5000000
+
