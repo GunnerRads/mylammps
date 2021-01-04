@@ -8,9 +8,9 @@ created by fftool
 9 bond types
 13 angle types
 20 dihedral types
--15.000000 15.000000 xlo xhi
--15.000000 15.000000 ylo yhi
--30.000000 30.000000 zlo zhi
+-17.300000 16.900000 xlo xhi
+-18.300000 17.800000 ylo yhi
+-50.000000 50.000000 zlo zhi
 
 Masses
 
